@@ -1,0 +1,119 @@
+---
+- name: Verify Active Webserver and Baseline Infrastructure
+  hosts: all
+  remote_user: root
+
+  tasks:
+
+    # ── Common packages ────────────────────────────────────────────────────────
+
+    - name: Check curl is installed
+      ansible.builtin.package:
+        name: curl
+        state: present
+      check_mode: true
+      register: curl_check
+
+    - name: Assert curl is present
+      ansible.builtin.assert:
+        that:
+          - not curl_check.changed
+        fail_msg: "DRIFT DETECTED: curl is missing from {{ inventory_hostname }}"
+        success_msg: "OK: curl is present on {{ inventory_hostname }}"
+
+    - name: Check ca-certificates is installed
+      ansible.builtin.package:
+        name: ca-certificates
+        state: present
+      check_mode: true
+      register: ca_check
+
+    - name: Assert ca-certificates is present
+      ansible.builtin.assert:
+        that:
+          - not ca_check.changed
+        fail_msg: "DRIFT DETECTED: ca-certificates is missing from {{ inventory_hostname }}"
+        success_msg: "OK: ca-certificates is present on {{ inventory_hostname }}"
+
+    # ── Firewall ───────────────────────────────────────────────────────────────
+
+    - name: Check iptables is installed
+      ansible.builtin.package:
+        name: iptables
+        state: present
+      check_mode: true
+      register: iptables_check
+
+    - name: Assert iptables is present
+      ansible.builtin.assert:
+        that:
+          - not iptables_check.changed
+        fail_msg: "DRIFT DETECTED: iptables is missing from {{ inventory_hostname }}"
+        success_msg: "OK: iptables is present on {{ inventory_hostname }}"
+
+    # ── Nginx package ──────────────────────────────────────────────────────────
+
+    - name: Check nginx is installed
+      ansible.builtin.package:
+        name: nginx
+        state: present
+      check_mode: true
+      register: nginx_pkg_check
+
+    - name: Assert nginx package is present
+      ansible.builtin.assert:
+        that:
+          - not nginx_pkg_check.changed
+        fail_msg: "DRIFT DETECTED: nginx package is missing from {{ inventory_hostname }}"
+        success_msg: "OK: nginx package is present on {{ inventory_hostname }}"
+
+    # ── Nginx process ──────────────────────────────────────────────────────────
+
+    - name: Check nginx process is running
+      ansible.builtin.command: pgrep -f nginx
+      register: nginx_pids
+      changed_when: false
+      failed_when: false
+
+    - name: Assert nginx process is alive
+      ansible.builtin.assert:
+        that:
+          - nginx_pids.rc == 0
+        fail_msg: "DRIFT DETECTED: nginx process is not running on {{ inventory_hostname }}"
+        success_msg: "OK: nginx process is running on {{ inventory_hostname }}"
+
+    # ── Nginx web root ─────────────────────────────────────────────────────────
+
+    - name: Check nginx web root directory exists
+      ansible.builtin.stat:
+        path: /usr/share/nginx/html
+      register: webroot_stat
+
+    - name: Assert web root directory is present
+      ansible.builtin.assert:
+        that:
+          - webroot_stat.stat.exists
+          - webroot_stat.stat.isdir
+        fail_msg: "DRIFT DETECTED: web root /usr/share/nginx/html is missing on {{ inventory_hostname }}"
+        success_msg: "OK: web root directory exists on {{ inventory_hostname }}"
+
+    # ── Nginx config content ───────────────────────────────────────────────────
+
+    - name: Read deployed nginx config
+      ansible.builtin.slurp:
+        src: /etc/nginx/nginx.conf
+      register: nginx_conf_raw
+
+    - name: Assert worker_processes matches expected environment value
+      ansible.builtin.assert:
+        that:
+          - "('worker_processes ' + nginx_worker_processes | string + ';') in (nginx_conf_raw.content | b64decode)"
+        fail_msg: "DRIFT DETECTED: worker_processes on {{ inventory_hostname }} does not match expected value of {{ nginx_worker_processes }}"
+        success_msg: "OK: worker_processes is {{ nginx_worker_processes }} on {{ inventory_hostname }}"
+
+    - name: Assert server_name matches expected environment value
+      ansible.builtin.assert:
+        that:
+          - "('server_name ' + nginx_server_name + ';') in (nginx_conf_raw.content | b64decode)"
+        fail_msg: "DRIFT DETECTED: server_name on {{ inventory_hostname }} does not match expected value of {{ nginx_server_name }}"
+        success_msg: "OK: server_name is {{ nginx_server_name }} on {{ inventory_hostname }}"

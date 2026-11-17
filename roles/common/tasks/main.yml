@@ -1,0 +1,13 @@
+---
+- name: Update Alpine package repository cache
+  community.general.apk:
+    update_cache: true
+  when: ansible_os_family == "Alpine"
+
+- name: Install common base utilities
+  community.general.apk:
+    name:
+      - curl
+      - ca-certificates
+    state: present
+  when: ansible_os_family == "Alpine"

@@ -1,0 +1,4 @@
+---
+- name: Restart Nginx
+  ansible.builtin.shell: nginx -s reload
+  changed_when: false

@@ -1,0 +1,12 @@
+---
+- name: Ensure firewall service package is present (Simulated for Alpine container)
+  community.general.apk:
+    name:
+      - iptables
+    state: present
+  when: ansible_os_family == "Alpine" and firewall_enabled | bool
+
+- name: Verify firewall rules status (Read-only check)
+  ansible.builtin.shell: iptables -L -n || true
+  changed_when: false
+  when: ansible_os_family == "Alpine"

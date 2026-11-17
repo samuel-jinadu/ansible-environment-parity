@@ -1,0 +1,17 @@
+---
+- name: Ensure Active Webserver and Baseline Infrastructure
+  hosts: all
+  remote_user: root
+
+  roles:
+    - role: common
+      tags:
+        - common
+
+    - role: firewall
+      tags:
+        - firewall
+
+    - role: nginx
+      tags:
+        - nginx

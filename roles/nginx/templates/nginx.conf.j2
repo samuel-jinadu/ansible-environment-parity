@@ -1,0 +1,23 @@
+# Managed by Ansible — do not edit manually
+# Template: templates/nginx.conf.j2
+
+worker_processes {{ nginx_worker_processes }};
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    server {
+        listen      {{ nginx_port }};
+        server_name {{ nginx_server_name }};
+
+        location / {
+            root  /usr/share/nginx/html;
+            index index.html index.htm;
+        }
+    }
+}

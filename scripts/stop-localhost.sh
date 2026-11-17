@@ -1,0 +1,1 @@
+docker stop python-alpine-target && docker ps
